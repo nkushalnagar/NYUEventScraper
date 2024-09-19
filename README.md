@@ -1,4 +1,4 @@
-# eventScraper
+# NYUEventScraper
 
 This is a Python program that scrapes event data from the NYU Events website (www.events.nyu.edu) for the current week. It uses the Selenium WebDriver to navigate the website and BeautifulSoup to parse the HTML. The script extracts the event name, date, start time, end time, and link for each event and stores the data in a list of dictionaries. The list is then converted to a Pandas DataFrame and saved as a CSV file.
 
