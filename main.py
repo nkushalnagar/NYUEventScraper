@@ -7,16 +7,23 @@ import pandas as pd
 
 # Set up the WebDriver
 driver = webdriver.Chrome()
-
-
 Events = []
 
 
 # Get event pages for the week until Sunday
 def conv_date_to_string(today_date):
-   today_date = str(today_date)
-   today_date = today_date.replace('-','')
-   return today_date
+ today_date = str(today_date)
+ today_date = today_date.replace('-','')
+ return today_date
+
+
+def correct_url(url):
+   if url[0] == 'h':
+       return url
+   else:
+       return 'https://www.events.nyu.edu' + url
+
+
 
 
 def get_event_pages_for_week():
@@ -27,38 +34,67 @@ def get_event_pages_for_week():
    while day_of_the_week <= 6:
        webpage = "https://events.nyu.edu/day/date/" + today_str
        print(webpage)
-
-
        driver.get(webpage)
 
+
        time.sleep(1)
+
+
        # Parse the page source with Beautiful Soup
        soup = BeautifulSoup(driver.page_source, 'html.parser')
 
 
-       target_titles = soup.find_all('div', class_='lw_events_title')
 
-       feature_top = soup.find_all('div', class_ = 'feature-top-info')
+
+       # For the top highlighted Event
+
+
+       feature_top = soup.find_all('div', class_ = 'feature-top')
        for feature in feature_top:
-           feature_top_header = feature.h4.text
-       Events.append({'Event Name': feature_top_header,'Date': today})
+           link = feature.find('a', href = True)['href']
+           link = correct_url(link)
+           feature = feature.find('div', {'class': 'feature-top-info' })
+           event_name = feature.h4.text
+
+
+           if feature.find('div', {'class': 'nyu-date-time'}).find('span', {'class': 'lw_start_time'}):
+               start = feature.find('div', {'class': 'nyu-date-time'}).find('span', {'class': 'lw_start_time'}).text
+           else:
+               start = None
+          
+           if feature.find('div', {'class': 'nyu-date-time'}).find('span', {'class': 'lw_end_time'}):
+               end = feature.find('div', {'class': 'nyu-date-time'}).find('span', {'class': 'lw_end_time'}).text
+           else:
+               end = None
+           #end = feature.find('div', {'class': 'nyu-date-time'}).find('span', {'class': 'lw_end_time'}).text
+           Events.append({'Event Name': event_name,'Date': today, 'Start':start , 'End': end, 'Link': link})
+
+
+      
+       # For other events
+       all_events = soup.find_all('div', class_='lw_cal_event')
        n = 1
+       for target in all_events:
+           title = target.find('div', {'class':'lw_events_title'})
+           text = title.a.text
+           link = title.a['href']
+           link = correct_url(link)
+           time_ = target.find('div', {'class':'nyu-date-time'})
+          
+           if time_.find('span', {'class': 'lw_start_time'}):
+               start = time_.find('span', {'class': 'lw_start_time'}).text
+           else:
+               start = None
 
 
-       for target in target_titles:
-           text = target.a.text
-           Events.append({'Event Name': text, 'Date': today})  ############ need to add more items here #########
+           if time_.find('span', {'class': 'lw_end_time'}):
+               end = time_.find('span', {'class': 'lw_end_time'}).text
+           else:
+               end = None
+
+
+           Events.append({'Event Name': text,'Date': today, 'Start':start , 'End': end, 'Link': link})
            n += 1
-
-       event_date_time = soup.find_all('div', class_ = 'nyu-date-time')
-
-       for date_time in event_date_time:
-           start = ""
-           end = ""
-           end = date_time.find_all('span', class_ = 'lw_end_time')
-           start = date_time.find_all('span', class_ = 'lw_start_time')
-           Events.append({'Start Time': start, 'End Time': end})
-
        print(f'{n} events for {today}')
 
 
@@ -72,4 +108,5 @@ get_event_pages_for_week()
 
 # Create a DataFrame from the list of events
 df = pd.DataFrame(Events)
-print(df)
+df.to_csv('file.csv', index=False)
+# print(df)
